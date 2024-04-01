@@ -5,6 +5,7 @@ import GroupProps from "../props/GroupProps";
 import User from "../models/UserModel";
 import BoardProps from "../props/BoardProps";
 import handleIncompleteError from "../libs/handleIncompleteError";
+import { io } from "../index";
 
 // Creating a new board
 export const createBoard = async (req: Request, res: Response) => {
@@ -16,13 +17,25 @@ export const createBoard = async (req: Request, res: Response) => {
     if (!name) return handleIncompleteError(res);
 
     // Creating
-    const board = await Board.create({
+    const newBoard = await Board.create({
       name,
       image,
       group: _id,
       createdBy: requestingUserId,
       lastUpdatedBy: requestingUserId,
     });
+
+    // Getting board data
+    const board = await Board.findById(newBoard._id)
+      .populate("group")
+      .populate("createdBy", "username email firstName lastName profilePic")
+      .populate(
+        "lastUpdatedBy",
+        "username email firstName lastName profilePic"
+      );
+
+    // Broadcasting to all users
+    io.to(board.group._id.toString()).emit("new-board", board);
 
     // Response
     res.status(200).json({ message: "Board Created" });
@@ -92,15 +105,30 @@ export const updateName = async (req: Request, res: Response) => {
   try {
     const { newName } = req.body;
     const { id } = req.params;
+    const requestingUserId = req.query.requestingUserId as string;
 
-    const board = await Board.findByIdAndUpdate(id, {
+    const updatedBoard = await Board.findByIdAndUpdate(id, {
       name: newName,
       lastUpdatedBy: req.query.requestingUserId,
     });
 
-    if (!board) {
+    if (!updatedBoard) {
       return res.status(404).json({ message: "Board not found" });
     }
+
+    // Getting updated board data
+    const board = await Board.findById(updatedBoard._id)
+      .populate("group")
+      .populate("createdBy", "username email firstName lastName profilePic")
+      .populate(
+        "lastUpdatedBy",
+        "username email firstName lastName profilePic"
+      );
+    // Getting user who is updating the name
+    const user = await User.findById(requestingUserId);
+
+    // Broadcasting to all group memebers
+    io.to(board.group._id.toString()).emit("updated-board-name", board, user);
 
     // Response
     res.status(200).json({ message: "Name updated" });
@@ -114,12 +142,19 @@ export const updateName = async (req: Request, res: Response) => {
 export const deleteBoard = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const requestingUserId = req.query.requestingUserId as string;
 
     const board = await Board.findByIdAndDelete(id);
 
     if (!board) {
       return res.status(404).json({ message: "Board not found" });
     }
+
+    // Getting user details who is deleting the board
+    const user = await User.findById(requestingUserId);
+
+    // Broadcasting to all group memebers
+    io.to(board.group._id.toString()).emit("delete-board", board, user);
 
     // Response
     res.status(200).json({ message: "Board Deleted Successfully" });
