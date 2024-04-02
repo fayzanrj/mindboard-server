@@ -6,6 +6,7 @@ import User from "../models/UserModel";
 import BoardProps from "../props/BoardProps";
 import handleIncompleteError from "../libs/handleIncompleteError";
 import { io } from "../index";
+import mongoose from "mongoose";
 
 // Creating a new board
 export const createBoard = async (req: Request, res: Response) => {
@@ -158,6 +159,71 @@ export const deleteBoard = async (req: Request, res: Response) => {
 
     // Response
     res.status(200).json({ message: "Board Deleted Successfully" });
+  } catch (error) {
+    console.error(error);
+    handleInternalError(res);
+  }
+};
+
+// Adding board in favoriate
+export const addBoardToFavoriates = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const requestingUserId = req.query.requestingUserId as string;
+
+    // gettig board
+    const board = await Board.findById(id);
+
+    if (!board) {
+      return res.status(404).json({ message: "Board not found" });
+    }
+
+    // Convert string to ObjectId
+    const userId = new mongoose.Types.ObjectId(requestingUserId);
+
+    // Adding user to isFavOf array
+    if (!board.isFavOf.includes(userId)) {
+      board.isFavOf.push(userId);
+    }
+
+    // updating board
+    await board.save();
+
+    res.status(200).json({ message: "Board added to favoriates successfully" });
+  } catch (error) {
+    console.error(error);
+    handleInternalError(res);
+  }
+};
+
+export const removeBoardFromFavorites = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const requestingUserId = req.query.requestingUserId as string;
+
+    // getting board
+    const board = await Board.findById(id);
+
+    if (!board) {
+      return res.status(404).json({ message: "Board not found" });
+    }
+
+    // Convert string to ObjectId
+    const userId = new mongoose.Types.ObjectId(requestingUserId);
+    // Getting index of the user in isFavOf Array
+    const index = board.isFavOf.indexOf(userId);
+
+    if (index === -1) {
+      return res.status(400).json({ message: "Board not found in favorites" });
+    }
+
+    // updating board
+    board.isFavOf.splice(index, 1);
+    await board.save();
+
+    res
+      .status(200)
+      .json({ message: "Board removed from favoriates successfully" });
   } catch (error) {
     console.error(error);
     handleInternalError(res);

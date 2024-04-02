@@ -61,4 +61,22 @@ router.delete(
   boardController.deleteBoard
 );
 
+// route to add a board to fav
+router.put(
+  "/addToFav/:id",
+  authorize,
+  isIdValid,
+  hasAccessToBoard,
+  boardController.addBoardToFavoriates
+);
+
+// route to remove a board from fav
+router.put(
+  "/removeFromFav/:id",
+  authorize,
+  isIdValid,
+  hasAccessToBoard,
+  boardController.removeBoardFromFavorites
+);
+
 export default router;
