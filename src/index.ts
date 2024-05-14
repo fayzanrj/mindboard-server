@@ -3,7 +3,7 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import env from "dotenv";
-import express from "express";
+import express, { Request, Response } from "express";
 import connectToMongo from "./db";
 import groupRoutes from "./routes/GroupRoutes";
 import userRoutes from "./routes/UserRoutes";
@@ -48,6 +48,9 @@ app.use(bodyParser.json());
 app.use("/api/v1/user/", userRoutes);
 app.use("/api/v1/group/", groupRoutes);
 app.use("/api/v1/board/", boardRoutes);
+app.use("/api/v1/", (req: Request, res: Response) =>
+  res.send("Server running")
+);
 
 connectToMongo();
 
