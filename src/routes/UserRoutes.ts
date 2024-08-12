@@ -14,7 +14,6 @@ const router = express.Router();
 // Sign up route
 router.post(
   "/signupwithclerk",
-  authorize,
   userDataCheck,
   userControllers.SignUpWithClerk
 );
